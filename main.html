@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Tourist Safety Dashboard</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial,sans-serif;
+background:linear-gradient(135deg,#020617,#111827,#3b0000);
+color:white;
+overflow-x:hidden;
+}
+
+.container{
+padding:20px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+margin-bottom:25px;
+gap:15px;
+}
+
+.title{
+font-size:38px;
+font-weight:bold;
+}
+
+.subtitle{
+color:#cbd5e1;
+margin-top:5px;
+}
+
+.lang-box{
+display:flex;
+flex-direction:column;
+gap:6px;
+}
+
+.lang-label{
+color:#cbd5e1;
+font-size:14px;
+}
+
+select{
+padding:10px;
+border-radius:10px;
+border:none;
+background:#1e293b;
+color:white;
+font-size:15px;
+}
+
+.sos{
+background:red;
+color:white;
+border:none;
+padding:15px 25px;
+border-radius:18px;
+font-size:18px;
+cursor:pointer;
+box-shadow:0 0 20px red;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:20px;
+margin-bottom:25px;
+}
+
+.card{
+background:rgba(255,255,255,0.08);
+border:1px solid rgba(255,255,255,0.1);
+backdrop-filter:blur(15px);
+padding:20px;
+border-radius:22px;
+box-shadow:0 4px 20px rgba(0,0,0,0.4);
+}
+
+#map{
+height:500px;
+border-radius:20px;
+}
+
+.service{
+background:#1e293b;
+padding:15px;
+border-radius:15px;
+margin-top:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+button{
+background:#2563eb;
+color:white;
+border:none;
+padding:10px 18px;
+border-radius:12px;
+cursor:pointer;
+transition:0.3s;
+}
+
+button:hover{
+transform:scale(1.05);
+}
+
+.voice{
+background:#06b6d4;
+}
+
+.route-btn{
+background:#06b6d4;
+margin-top:10px;
+}
+
+.status{
+color:#00ffcc;
+font-weight:bold;
+}
+
+.info{
+margin-top:10px;
+color:#cbd5e1;
+}
+
+.nearby-list{
+margin-top:15px;
+max-height:350px;
+overflow-y:auto;
+}
+
+.place{
+background:#0f172a;
+padding:15px;
+border-radius:15px;
+margin-top:12px;
+line-height:1.8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+
+<div>
+
+<div class="title" id="title">
+🚨 Tourist Safety Dashboard
+</div>
+
+<div class="subtitle" id="subtitle">
+Real-time Emergency Assistance System
+</div>
+
+</div>
+
+<div class="lang-box">
+
+<label class="lang-label" id="langLabel">
+🌐 Choose Language
+</label>
+
+<select id="languageSelect"
+onchange="changeLanguage()">
+
+<option value="en">🌍 English</option>
+<option value="hi">🇮🇳 हिन्दी</option>
+<option value="te">🇮🇳 తెలుగు</option>
+<option value="ta">🇮🇳 தமிழ்</option>
+
+</select>
+
+</div>
+
+<button class="sos"
+onclick="activateSOS()"
+id="sosBtn">
+
+🚨 SOS ALERT
+
+</button>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+
+<h2 id="liveTitle">
+📍 Live Location
+</h2>
+
+<p class="info" id="lat">
+Latitude: --
+</p>
+
+<p class="info" id="lng">
+Longitude: --
+</p>
+
+</div>
+
+<div class="card">
+
+<h2 id="statusTitle">
+🟢 System Status
+</h2>
+
+<p class="status" id="status">
+Checking...
+</p>
+
+</div>
+
+<div class="card">
+
+<h2 id="voiceTitle">
+🎤 Voice Assistant
+</h2>
+
+<button class="voice"
+onclick="startVoice()"
+id="voiceBtn">
+
+Start Voice Command
+
+</button>
+
+<p class="info" id="voiceInfo">
+Say: Hospital, Police, or Fire
+</p>
+
+</div>
+
+</div>
+
+<div class="grid">
+
+<div class="card">
+
+<div id="map"></div>
+
+</div>
+
+<div class="card">
+
+<h2 id="nearbyTitle">
+Nearby Emergency Services
+</h2>
+
+<div class="service">
+
+<div>
+
+<h3 id="hospitalText">
+🏥 Hospitals
+</h3>
+
+<p id="hospitalDesc">
+Top 3 nearest hospitals
+</p>
+
+</div>
+
+<button id="search1"
+onclick="findNearby('hospital')">
+
+Search
+
+</button>
+
+</div>
+
+<div class="service">
+
+<div>
+
+<h3 id="policeText">
+🚔 Police Stations
+</h3>
+
+<p id="policeDesc">
+Top 3 nearest police stations
+</p>
+
+</div>
+
+<button id="search2"
+onclick="findNearby('police')">
+
+Search
+
+</button>
+
+</div>
+
+<div class="service">
+
+<div>
+
+<h3 id="fireText">
+🔥 Fire Stations
+</h3>
+
+<p id="fireDesc">
+Top 3 nearest fire stations
+</p>
+
+</div>
+
+<button id="search3"
+onclick="findNearby('fire_station')">
+
+Search
+
+</button>
+
+</div>
+
+<div class="nearby-list"
+id="placesList">
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+// 🌐 TRANSLATIONS
+
+const translations = {
+
+en:{
+title:"🚨 Tourist Safety Dashboard",
+subtitle:"Real-time Emergency Assistance System",
+lang:"🌐 Choose Language",
+live:"📍 Live Location",
+status:"🟢 System Status",
+voice:"🎤 Voice Assistant",
+voiceBtn:"Start Voice Command",
+voiceInfo:"Say: Hospital, Police, or Fire",
+nearby:"Nearby Emergency Services",
+hospital:"🏥 Hospitals",
+hospitalDesc:"Top 3 nearest hospitals",
+police:"🚔 Police Stations",
+policeDesc:"Top 3 nearest police stations",
+fire:"🔥 Fire Stations",
+fireDesc:"Top 3 nearest fire stations",
+search:"Search",
+sos:"🚨 SOS ALERT"
+},
+
+hi:{
+title:"🚨 पर्यटक सुरक्षा डैशबोर्ड",
+subtitle:"रियल-टाइम आपातकालीन सहायता प्रणाली",
+lang:"🌐 भाषा चुनें",
+live:"📍 लाइव लोकेशन",
+status:"🟢 सिस्टम स्थिति",
+voice:"🎤 वॉइस असिस्टेंट",
+voiceBtn:"वॉइस कमांड शुरू करें",
+voiceInfo:"कहें: हॉस्पिटल, पुलिस, या फायर",
+nearby:"नजदीकी आपातकालीन सेवाएं",
+hospital:"🏥 अस्पताल",
+hospitalDesc:"सबसे नजदीकी 3 अस्पताल",
+police:"🚔 पुलिस स्टेशन",
+policeDesc:"सबसे नजदीकी 3 पुलिस स्टेशन",
+fire:"🔥 फायर स्टेशन",
+fireDesc:"सबसे नजदीकी 3 फायर स्टेशन",
+search:"खोजें",
+sos:"🚨 एसओएस अलर्ट"
+},
+
+te:{
+title:"🚨 పర్యాటక భద్రత డ్యాష్‌బోర్డ్",
+subtitle:"రియల్ టైమ్ అత్యవసర సహాయ వ్యవస్థ",
+lang:"🌐 భాష ఎంచుకోండి",
+live:"📍 ప్రత్యక్ష స్థానం",
+status:"🟢 సిస్టమ్ స్థితి",
+voice:"🎤 వాయిస్ అసిస్టెంట్",
+voiceBtn:"వాయిస్ కమాండ్ ప్రారంభించండి",
+voiceInfo:"చెప్పండి: హాస్పిటల్, పోలీస్, లేదా ఫైర్",
+nearby:"సమీప అత్యవసర సేవలు",
+hospital:"🏥 ఆసుపత్రులు",
+hospitalDesc:"అత్యంత సమీపంలోని 3 ఆసుపత్రులు",
+police:"🚔 పోలీస్ స్టేషన్లు",
+policeDesc:"అత్యంత సమీపంలోని 3 పోలీస్ స్టేషన్లు",
+fire:"🔥 ఫైర్ స్టేషన్లు",
+fireDesc:"అత్యంత సమీపంలోని 3 ఫైర్ స్టేషన్లు",
+search:"వెతకండి",
+sos:"🚨 ఎస్‌ఓఎస్ అలర్ట్"
+},
+
+ta:{
+title:"🚨 சுற்றுலா பாதுகாப்பு டாஷ்போர்டு",
+subtitle:"நேரடி அவசர உதவி அமைப்பு",
+lang:"🌐 மொழியை தேர்ந்தெடுக்கவும்",
+live:"📍 நேரடி இருப்பிடம்",
+status:"🟢 அமைப்பு நிலை",
+voice:"🎤 குரல் உதவியாளர்",
+voiceBtn:"குரல் கட்டளை தொடங்கு",
+voiceInfo:"சொல்லுங்கள்: மருத்துவமனை, போலீஸ், அல்லது தீயணைப்பு",
+nearby:"அருகிலுள்ள அவசர சேவைகள்",
+hospital:"🏥 மருத்துவமனைகள்",
+hospitalDesc:"அருகிலுள்ள 3 மருத்துவமனைகள்",
+police:"🚔 போலீஸ் நிலையங்கள்",
+policeDesc:"அருகிலுள்ள 3 போலீஸ் நிலையங்கள்",
+fire:"🔥 தீயணைப்பு நிலையங்கள்",
+fireDesc:"அருகிலுள்ள 3 தீயணைப்பு நிலையங்கள்",
+search:"தேடு",
+sos:"🚨 எஸ்ஓஎஸ் எச்சரிக்கை"
+}
+
+};
+
+let currentLang = "en";
+
+// 🗺️ MAP
+
+var map =
+L.map('map')
+.setView([20.5937,78.9629],5);
+
+L.tileLayer(
+'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+{
+attribution:'© OpenStreetMap'
+}
+).addTo(map);
+
+var userLat,userLng;
+var markers=[];
+var routeLayer;
+
+// 📍 LOCATION
+
+navigator.geolocation.watchPosition(
+
+pos=>{
+
+userLat = pos.coords.latitude;
+userLng = pos.coords.longitude;
+
+document.getElementById("lat").innerText =
+"Latitude: " + userLat.toFixed(5);
+
+document.getElementById("lng").innerText =
+"Longitude: " + userLng.toFixed(5);
+
+map.setView([userLat,userLng],14);
+
+if(window.userMarker){
+
+window.userMarker.setLatLng([userLat,userLng]);
+
+}else{
+
+window.userMarker =
+L.marker([userLat,userLng])
+
+.addTo(map)
+
+.bindPopup("📍 You are here")
+
+.openPopup();
+
+}
+
+}
+
+);
+
+// 🟢 STATUS
+
+function updateStatus(){
+
+document.getElementById("status")
+.innerText =
+
+navigator.onLine ?
+
+"Online & Active" :
+
+"Offline";
+
+}
+
+updateStatus();
+
+// 📏 DISTANCE
+
+function getDistance(lat1,lon1,lat2,lon2){
+
+const R = 6371;
+
+const dLat =
+(lat2-lat1) * Math.PI/180;
+
+const dLon =
+(lon2-lon1) * Math.PI/180;
+
+const a =
+
+Math.sin(dLat/2) *
+Math.sin(dLat/2) +
+
+Math.cos(lat1*Math.PI/180) *
+Math.cos(lat2*Math.PI/180) *
+
+Math.sin(dLon/2) *
+Math.sin(dLon/2);
+
+return R *
+
+(
+2*Math.atan2(
+Math.sqrt(a),
+Math.sqrt(1-a)
+)
+);
+
+}
+
+// 🔍 FIND NEARBY
+
+async function findNearby(type){
+
+if(!userLat || !userLng){
+
+alert("Location not ready");
+return;
+
+}
+
+document.getElementById(
+"placesList"
+).innerHTML =
+"Searching nearby services...";
+
+let radius = 15000;
+
+let query = "";
+
+if(type === "police"){
+
+query = `
+[out:json][timeout:25];
+(
+node(around:${radius},${userLat},${userLng})["amenity"="police"];
+way(around:${radius},${userLat},${userLng})["amenity"="police"];
+relation(around:${radius},${userLat},${userLng})["amenity"="police"];
+);
+out center;
+`;
+
+}
+
+else if(type === "fire_station"){
+
+query = `
+[out:json][timeout:25];
+(
+node(around:${radius},${userLat},${userLng})["emergency"="fire_station"];
+way(around:${radius},${userLat},${userLng})["emergency"="fire_station"];
+relation(around:${radius},${userLat},${userLng})["emergency"="fire_station"];
+);
+out center;
+`;
+
+}
+
+else{
+
+query = `
+[out:json][timeout:25];
+(
+node(around:${radius},${userLat},${userLng})["amenity"="${type}"];
+way(around:${radius},${userLat},${userLng})["amenity"="${type}"];
+relation(around:${radius},${userLat},${userLng})["amenity"="${type}"];
+);
+out center;
+`;
+
+}
+
+let response =
+await fetch(
+"https://overpass-api.de/api/interpreter",
+{
+method:"POST",
+body:query
+}
+);
+
+let data =
+await response.json();
+
+if(!data.elements.length){
+
+document.getElementById(
+"placesList"
+).innerHTML =
+`
+<div class="place">
+❌ No nearby places found
+</div>
+`;
+
+return;
+
+}
+
+data.elements.forEach(place=>{
+
+let lat =
+place.lat ||
+place.center?.lat;
+
+let lon =
+place.lon ||
+place.center?.lon;
+
+place.realLat = lat;
+place.realLon = lon;
+
+place.distance =
+getDistance(
+userLat,
+userLng,
+lat,
+lon
+);
+
+});
+
+data.elements.sort(
+(a,b)=>
+a.distance-b.distance
+);
+
+// 🚗 AUTO ROUTING
+
+let nearest =
+data.elements[0];
+
+routeToPlace(
+nearest.realLat,
+nearest.realLon,
+nearest.tags.name || type
+);
+
+let top3 =
+data.elements.slice(0,3);
+
+let html = `
+<div class="place"
+style="border:2px solid cyan;">
+
+<h2>
+🚗 Auto Routing Enabled
+</h2>
+
+<p>
+Nearest:
+<b>${nearest.tags.name || type}</b>
+</p>
+
+<p>
+📍 Distance:
+${nearest.distance.toFixed(2)} KM
+</p>
+
+<p>
+⏱️ Estimated Time:
+~${(nearest.distance * 3).toFixed(0)} mins
+</p>
+
+</div>
+`;
+
+for(let i=0;i<top3.length;i++){
+
+let p = top3[i];
+
+html += `
+<div class="place">
+
+<h3>
+${i+1}. ${p.tags.name || type}
+</h3>
+
+<p>
+📍 Distance:
+${p.distance.toFixed(2)} KM
+</p>
+
+<p>
+⏱️ Time:
+~${(p.distance * 3).toFixed(0)} mins
+</p>
+
+<button
+class="route-btn"
+
+onclick="
+routeToPlace(
+${p.realLat},
+${p.realLon},
+'${(p.tags.name || type).replace(/'/g,'')}'
+)
+">
+
+🚗 Route Here
+
+</button>
+
+</div>
+`;
+
+}
+
+document.getElementById(
+"placesList"
+).innerHTML = html;
+
+}
+
+// 🛣️ ROUTE
+
+async function routeToPlace(
+lat,
+lon,
+name
+){
+
+if(routeLayer){
+map.removeLayer(routeLayer);
+}
+
+let routeURL =
+
+`https://router.project-osrm.org/route/v1/driving/` +
+
+`${userLng},${userLat};` +
+
+`${lon},${lat}` +
+
+`?overview=full&geometries=geojson`;
+
+let response =
+await fetch(routeURL);
+
+let data =
+await response.json();
+
+let route =
+data.routes[0].geometry;
+
+routeLayer =
+L.geoJSON(route,{
+
+style:{
+color:"#00ffff",
+weight:6
+}
+
+}).addTo(map);
+
+let marker =
+L.marker([lat,lon])
+
+.addTo(map)
+
+.bindPopup(
+`<b>${name}</b><br>🚗 Route Updated`
+)
+
+.openPopup();
+
+markers.push(marker);
+
+map.fitBounds(
+routeLayer.getBounds()
+);
+
+}
+
+// 🚨 SOS
+
+function activateSOS(){
+
+let locationLink =
+`https://maps.google.com/?q=${userLat},${userLng}`;
+
+window.open(
+`https://wa.me/916305894383?text=${encodeURIComponent(locationLink)}`,
+"_blank"
+);
+
+}
+
+// 🎤 VOICE COMMAND
+
+function startVoice(){
+
+const SpeechRecognition =
+window.SpeechRecognition ||
+window.webkitSpeechRecognition;
+
+if(!SpeechRecognition){
+
+alert("Voice recognition not supported");
+return;
+
+}
+
+let recognition =
+new SpeechRecognition();
+
+recognition.lang = "en-US";
+recognition.continuous = false;
+recognition.interimResults = false;
+recognition.maxAlternatives = 1;
+
+document.getElementById("voiceBtn").innerText =
+"🎤 Listening...";
+
+recognition.start();
+
+setTimeout(()=>{
+recognition.stop();
+},4000);
+
+recognition.onresult = function(event){
+
+let text =
+event.results[0][0]
+.transcript
+.toLowerCase()
+.trim();
+
+document.getElementById("voiceBtn").innerText =
+translations[currentLang].voiceBtn;
+
+if(text.includes("hospital")){
+findNearby('hospital');
+}
+
+else if(text.includes("police")){
+findNearby('police');
+}
+
+else if(text.includes("fire")){
+findNearby('fire_station');
+}
+
+else{
+alert("Command not recognized");
+}
+
+};
+
+recognition.onerror = function(){
+
+document.getElementById("voiceBtn").innerText =
+translations[currentLang].voiceBtn;
+
+alert("Voice recognition failed");
+
+};
+
+}
+
+// 🌐 LANGUAGE
+
+function changeLanguage(){
+
+let lang =
+document.getElementById(
+"languageSelect"
+).value;
+
+currentLang = lang;
+
+let t =
+translations[lang];
+
+document.getElementById("title").innerText =
+t.title;
+
+document.getElementById("subtitle").innerText =
+t.subtitle;
+
+document.getElementById("langLabel").innerText =
+t.lang;
+
+document.getElementById("liveTitle").innerText =
+t.live;
+
+document.getElementById("statusTitle").innerText =
+t.status;
+
+document.getElementById("voiceTitle").innerText =
+t.voice;
+
+document.getElementById("voiceBtn").innerText =
+t.voiceBtn;
+
+document.getElementById("voiceInfo").innerText =
+t.voiceInfo;
+
+document.getElementById("nearbyTitle").innerText =
+t.nearby;
+
+document.getElementById("hospitalText").innerText =
+t.hospital;
+
+document.getElementById("hospitalDesc").innerText =
+t.hospitalDesc;
+
+document.getElementById("policeText").innerText =
+t.police;
+
+document.getElementById("policeDesc").innerText =
+t.policeDesc;
+
+document.getElementById("fireText").innerText =
+t.fire;
+
+document.getElementById("fireDesc").innerText =
+t.fireDesc;
+
+document.getElementById("search1").innerText =
+t.search;
+
+document.getElementById("search2").innerText =
+t.search;
+
+document.getElementById("search3").innerText =
+t.search;
+
+document.getElementById("sosBtn").innerText =
+t.sos;
+
+}
+
+</script>
+
+</body>
+</html>
